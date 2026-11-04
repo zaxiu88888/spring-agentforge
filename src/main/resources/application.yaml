@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: agentforge
+  datasource:
+    url: jdbc:postgresql://localhost:5432/agenthub
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
+  ai:
+    zhipuai:
+      api-key: ${ZHIPU_API_KEY:dummy-key-context-load}
+      chat:
+        options:
+          model: glm-4.6
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:dummy-key-context-load}
+      chat:
+        options:
+          model: deepseek-chat
+
+# eshop 第二数据源（M2 SqlQueryTool 使用；用户只读）
+eshop:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/eshop
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:123456}
+
+server:
+  port: 8080

@@ -1,0 +1,22 @@
+# 密钥与本地配置（严禁入库）
+.env
+*.local.yaml
+
+# Java / Maven
+target/
+*.class
+
+# Node / 前端
+node_modules/
+ui/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# 运行产物
+data/documents/
+logs/
+*.log

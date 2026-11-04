@@ -44,9 +44,12 @@ M1 会在仓库放 `.env.example` 模板。
 
 ## 5. 后端 / 前端启动
 
+> ⚠️ 本机 `JAVA_HOME` 默认指向 JDK 11（E:\jdk），必须显式改指 JDK 21（在 `E:\jdk 21`），否则编译报"不支持发行版本 21"。
+
 ```bash
-cd agentforge && mvn spring-boot:run     # 8080
-cd ui && npm install && npm run dev      # 5173，CORS 已开后端直连
+export JAVA_HOME="/e/jdk 21"            # Git Bash；PowerShell: $env:JAVA_HOME="E:\jdk 21"
+cd agentforge && mvn spring-boot:run    # 8080
+cd ui && npm install && npm run dev     # 5173，CORS 已开后端直连
 ```
 
 ## 6. 新环境重建速查（换机器时）
