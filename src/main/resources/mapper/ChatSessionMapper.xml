@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agentforge.mapper.ChatSessionMapper">
+
+    <resultMap id="ChatSessionResult" type="com.agentforge.model.entity.ChatSession">
+        <id property="id" column="id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="title" column="title"/>
+        <result property="metadata" column="metadata"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="allColumns">
+        id, agent_id::text AS agent_id, title, metadata::text AS metadata, created_at, updated_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO chat_session (agent_id, title, metadata)
+        VALUES (CAST(#{agentId} AS uuid), #{title}, CAST(#{metadata} AS jsonb))
+    </insert>
+
+    <select id="selectById" resultMap="ChatSessionResult">
+        SELECT <include refid="allColumns"/>
+        FROM chat_session
+        WHERE id = CAST(#{id} AS uuid)
+    </select>
+
+    <select id="selectAll" resultMap="ChatSessionResult">
+        SELECT <include refid="allColumns"/>
+        FROM chat_session
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="selectByAgentId" resultMap="ChatSessionResult">
+        SELECT <include refid="allColumns"/>
+        FROM chat_session
+        WHERE agent_id = CAST(#{agentId} AS uuid)
+        ORDER BY updated_at DESC
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM chat_session WHERE id = CAST(#{id} AS uuid)
+    </delete>
+
+    <update id="updateById">
+        UPDATE chat_session
+        <set>
+            <if test="title != null">title = #{title},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = CAST(#{id} AS uuid)
+    </update>
+</mapper>

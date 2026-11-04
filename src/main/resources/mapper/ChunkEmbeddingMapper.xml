@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agentforge.mapper.ChunkEmbeddingMapper">
+
+    <resultMap id="ChunkResult" type="com.agentforge.model.entity.ChunkEmbedding">
+        <id property="id" column="id"/>
+        <result property="kbId" column="kb_id"/>
+        <result property="docId" column="doc_id"/>
+        <result property="content" column="content"/>
+        <result property="metadata" column="metadata"/>
+        <result property="embedding"
+                column="embedding"
+                javaType="float[]"
+                jdbcType="OTHER"
+                typeHandler="com.agentforge.typehandler.PgVectorTypeHandler"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO chunk_embedding (kb_id, doc_id, content, metadata, embedding)
+        VALUES (CAST(#{kbId} AS uuid),
+                CAST(#{docId} AS uuid),
+                #{content},
+                CAST(#{metadata} AS jsonb),
+                #{embedding, typeHandler=com.agentforge.typehandler.PgVectorTypeHandler,
+                   javaType=float[], jdbcType=OTHER}::vector)
+    </insert>
+
+    <!-- 查询向量为字面量 "[0.1,0.2,...]"，L2 距离升序取 top-k -->
+    <select id="similaritySearch" resultMap="ChunkResult">
+        SELECT id, kb_id::text AS kb_id, doc_id::text AS doc_id, content,
+               metadata::text AS metadata, embedding, created_at, updated_at
+        FROM chunk_embedding
+        WHERE kb_id = CAST(#{kbId} AS uuid)
+        ORDER BY embedding &lt;-&gt; CAST(#{queryVector} AS vector)
+        LIMIT #{limit}
+    </select>
+</mapper>

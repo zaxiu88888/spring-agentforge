@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.agentforge.mapper.AgentMapper">
+
+    <resultMap id="AgentResult" type="com.agentforge.model.entity.Agent">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="systemPrompt" column="system_prompt"/>
+        <result property="model" column="model"/>
+        <result property="allowedTools" column="allowed_tools"/>
+        <result property="allowedKbs" column="allowed_kbs"/>
+        <result property="chatOptions" column="chat_options"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="allColumns">
+        id, name, description, system_prompt, model,
+        allowed_tools::text AS allowed_tools,
+        allowed_kbs::text   AS allowed_kbs,
+        chat_options::text  AS chat_options,
+        created_at, updated_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO agent (name, description, system_prompt, model, allowed_tools, allowed_kbs, chat_options)
+        VALUES (#{name},
+                #{description},
+                #{systemPrompt},
+                #{model},
+                CAST(#{allowedTools} AS jsonb),
+                CAST(#{allowedKbs} AS jsonb),
+                CAST(#{chatOptions} AS jsonb))
+    </insert>
+
+    <select id="selectById" resultMap="AgentResult">
+        SELECT <include refid="allColumns"/>
+        FROM agent
+        WHERE id = CAST(#{id} AS uuid)
+    </select>
+
+    <select id="selectAll" resultMap="AgentResult">
+        SELECT <include refid="allColumns"/>
+        FROM agent
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM agent WHERE id = CAST(#{id} AS uuid)
+    </delete>
+
+    <update id="updateById">
+        UPDATE agent
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="systemPrompt != null">system_prompt = #{systemPrompt},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="allowedTools != null">allowed_tools = CAST(#{allowedTools} AS jsonb),</if>
+            <if test="allowedKbs != null">allowed_kbs = CAST(#{allowedKbs} AS jsonb),</if>
+            <if test="chatOptions != null">chat_options = CAST(#{chatOptions} AS jsonb),</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = CAST(#{id} AS uuid)
+    </update>
+</mapper>

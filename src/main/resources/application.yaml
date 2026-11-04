@@ -18,12 +18,19 @@ spring:
         options:
           model: deepseek-chat
 
-# eshop 第二数据源（M2 SqlQueryTool 使用；用户只读）
+# eshop 第二数据源（SqlQueryTool 专用，eshop_ro 只读角色）
 eshop:
   datasource:
     url: jdbc:postgresql://localhost:5432/eshop
-    username: ${PG_USER:postgres}
-    password: ${PG_PASSWORD:123456}
+    username: ${ESHOP_USER:eshop_ro}
+    password: ${ESHOP_PASSWORD:eshop_ro_local}
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.agentforge.model.entity
+  type-handlers-package: com.agentforge.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
 
 server:
   port: 8080
