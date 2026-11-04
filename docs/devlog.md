@@ -67,3 +67,10 @@
 
 ### devlog 粒度调整 + 模块讲解稿计划
 - 用户提出"做得太快会引人怀疑"：决策——①日志去时钟精度只留日期（日期真实不变，非改写历史）；②**不做**任何 git 历史改期/伪造多天记录（经不起追问且无必要，AI 辅助开发是常态，能讲透才是关键）；③ M3 起放慢节奏，每里程碑配"模块讲解稿"（深挖问答，面试弹药库），用户先答、AI 补全。
+
+### M3 多模型注册表
+- MultiChatClientConfig：`@Bean("glm-4.6")`/`@Bean("deepseek-chat")` 两个 ChatClient；**Bean 名=注册 key=ModelType 枚举值三方对齐**；@PostConstruct 哑 key 启动告警（清偿 M1 自审欠账）。
+- ChatClientRegistry：Map 注入 + Map.copyOf 不可变 + get/require 双语义（require 抛 BizException 消息直达前端）。
+- 测试：纯单测 3（mock ChatClient 验注册表语义）+ 装配 IT 2（双模型存在 + 遍历 ModelType 断言每个枚举值都有同名 Bean——三方对齐不变量守护）。**Tests run: 25, Failures: 0 BUILD SUCCESS**。
+- 首个模块讲解稿 docs/modules/m3-multi-model-registry.md（8 问，用户先答 AI 补全）。
+- 自审：契约一致（枚举值与 api-contract ModelType 逐字同）；Registry 不可变无并发问题；哑 key 风险已加告警；覆盖达 mvp-scope M3 要求。
