@@ -1,0 +1,36 @@
+# 测试环境：连本地 PG 的测试库（docs/mvp-scope.md §5；db/init-all.bat 已初始化）
+spring:
+  application:
+    name: agentforge-test
+  datasource:
+    url: jdbc:postgresql://localhost:5432/agenthub_test
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
+  ai:
+    zhipuai:
+      api-key: ${ZHIPU_API_KEY:dummy-key-context-load}
+      chat:
+        options:
+          model: glm-4.6
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:dummy-key-context-load}
+      chat:
+        options:
+          model: deepseek-chat
+
+eshop:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/eshop_test
+    username: ${ESHOP_USER:eshop_ro}
+    password: ${ESHOP_PASSWORD:eshop_ro_local}
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.agentforge.model.entity
+  type-handlers-package: com.agentforge.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 0
