@@ -126,3 +126,10 @@
 - **自审抓到自己的真缺陷（讲解稿第 4 题）**：第一版 SseAgentProgressListener 做成 @Component 单例、实例字段 currentSession 从 onMessage 反推会话——单例+会话态+并发=串线（与 M4 修的 Factory 缺陷同构）。修复：listener 按会话实例化（构造参数绑 sessionId），Factory 里 ProgressListenerFactory.create(sessionId) 装配时 new，生命周期随 AgentLoop。
 - 测试：SseService 语义 4（🩹未连接不抛/send 状态/重连替换/事件工厂）+ 监听器映射 2（四回调→四事件、sseService 抛异常不上传）+ 控制器 IT 2（event-stream+asyncStarted+init 入池、/api/sse 前缀真 404）+ Factory 单测适配。**Tests run: 77, Failures: 0 BUILD SUCCESS**。
 - 自审四查：契约一致（§8 事件/字段逐字对齐，IT 断言 asyncStarted）；并发安全（条件删除防误删、监听器会话隔离、事件源单线程串行）；无敏感信息入日志；覆盖 mvp-scope M7 要求。讲解稿 docs/modules/m7-sse.md（8 问待答，第 4 题即上面自审缺陷）。
+
+### 真 key 端到端大测试（M8 验收提前演练）
+- **测试矩阵**：mvn test 77 全绿 → 真机启动（真实双 key 环境变量，/health ok、ChatClientRegistry 双模型注册）→ Python E2E 脚本（建 Agent→建会话→挂 SSE→发问→等 AI_DONE→拉消息流核对）。
+- **结果 1（glm-4.6）**：链路全通但智谱 API 返回 **429 余额不足**——错误路径验证完整（异常→AI_DONE 带错误摘要→SSE 推送正常），代码无问题，账号需要充值。E2E 顺带验证了：哑/失败模型不会挂死循环（90 秒超时前 DONE）。
+- **结果 2（deepseek-chat）**：**全链路完美走通** ✅ 消息流 4 条完整：user → assistant(toolCalls: sqlQuery，模型自主写出的聚合 SQL 完全正确) → tool(结构化 JSON: 手机数码 15 件/运动户外 6/图书 2) → assistant 最终回答引用数据。SSE 事件序列 5 个且顺序正确：GENERATED_CONTENT(assistant) → THINKING → EXECUTING → GENERATED_CONTENT(tool) → GENERATED_CONTENT(assistant) → DONE。**mvp-scope §6 验收标准第 2 条（SQL 工具链路）提前达成**。
+- 测试后清理：后端进程终止、E2E 数据从 agenthub 清除（会话/Agent 各 2 条）。
+- 遗留：智谱 key 充值后补跑 glm-4.6 链路 + embedding 真实上传（M6 遗留项）；两条链路都在 M8 验收时一并完成。
