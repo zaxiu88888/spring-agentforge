@@ -94,3 +94,11 @@
 
 ### git push 连接重置排查
 - 现象：python/浏览器直连 github 正常，git push 报 "Recv failure: Connection was reset"。排查：无任何代理配置（系统/git/环境均无）→ 排除代理未传递；判定为 HTTP/2 多路复用通道被间歇重置。**解法：`git -c http.version=HTTP/1.1 push` 成功，已 `git config http.version HTTP/1.1` 固化到 repo-local**。
+
+### M5 工具体系
+- SqlQueryTool（OPTIONAL）：四层护栏——SELECT/WITH 白名单、分号多语句拒绝、LIMIT 200 子查询强制包裹、数据源只读（M2 的 Hikari readOnly + eshop_ro 双保险做最后防线）；返回结构化 JSON（columns/rowCount/rows 或 error），描述常量内嵌表结构（工具描述工程）。
+- CurrentTimeTool（OPTIONAL）：默认格式 yyyy-MM-dd HH:mm:ss，非法格式回退默认不抛错（工具错误也是给模型的信息）。
+- ToolFacadeService + GET /api/tools（ToolVO record，仅 OPTIONAL）；api-contract §6 对齐。
+- **踩坑（编译主错引发雪崩）**：`@Tool(description = getDescription())` 注解值不允许方法调用，必须编译期常量；该编译错中断注解处理轮次，Lombok 全体失效，AgentLoop/Factory 冒出几十个"找不到符号"——先修第一个编译错再看后面的，多数是连带。
+- 测试：护栏纯单测 6（白名单/多语句/包裹/JSON 错误）+ CurrentTime 3 + 真库 IT 4（含"哪类卖最好"聚合查询——验收场景原型）+ Controller 切片 1 + 真实 Bean 装配 IT 1。**Tests run: 55, Failures: 0 BUILD SUCCESS**。
+- 自审四查：/api/tools 契约一致（data 直接数组）；JdbcTemplate 唯一 Bean 构造注入无歧义；护栏四层+错误信息不含库表结构泄露（仅回显截断 SQL）；覆盖 mvp-scope M5 测试要求（SQL 拦截/装配）。讲解稿 docs/modules/m5-tools.md（8 问待答）。
