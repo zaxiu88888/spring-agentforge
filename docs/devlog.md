@@ -133,3 +133,11 @@
 - **结果 2（deepseek-chat）**：**全链路完美走通** ✅ 消息流 4 条完整：user → assistant(toolCalls: sqlQuery，模型自主写出的聚合 SQL 完全正确) → tool(结构化 JSON: 手机数码 15 件/运动户外 6/图书 2) → assistant 最终回答引用数据。SSE 事件序列 5 个且顺序正确：GENERATED_CONTENT(assistant) → THINKING → EXECUTING → GENERATED_CONTENT(tool) → GENERATED_CONTENT(assistant) → DONE。**mvp-scope §6 验收标准第 2 条（SQL 工具链路）提前达成**。
 - 测试后清理：后端进程终止、E2E 数据从 agenthub 清除（会话/Agent 各 2 条）。
 - 遗留：智谱 key 充值后补跑 glm-4.6 链路 + embedding 真实上传（M6 遗留项）；两条链路都在 M8 验收时一并完成。
+
+### 充值后双模型全链路大测试（全绿收官）
+- 用户完成智谱充值，glm-4.6 与 embedding-3 直连验证恢复可用。
+- **场景 1：glm-4.6 + RAG 知识库（全链路最完整一次）**：建 KB → 上传《售后政策手册》md → **真实 embedding-3 向量化入库**（M6 遗留项就此达成）→ Agent 挂 KB → 提问"黄金会员权益+退货政策" → 模型**单轮并行发起两个 knowledgeQuery**（分别查两个主题）→ 向量检索各自命中正确章节 → 最终以表格/分节 Markdown 引用知识库作答。消息流 5 条、SSE 七事件顺序正确。多工具并行调用路径（此前测试未覆盖）验证通过。
+- **场景 2：deepseek-chat + SQL 工具**：与昨日一致稳定复现（聚合 SQL → 结构化 JSON → 引用数据回答）。
+- **双模型对照结论**：glm-4.6 单轮双工具并行的决策风格 vs deepseek 单工具链路，AgentLoop 对两种模型行为均正确支撑——注册表抽象的价值实证。
+- 清理：psql 命令行传中文再次乱码（改 SQL 文件解决，坑已记录）、E2E 数据三表清零、data/documents 清空、后端进程终止。
+- 至此 mvp-scope §6 验收标准第 2/3 条（SQL 工具链路、知识库链路）均已在真实环境跑通；剩第 1/4/5 条（界面操作、刷新恢复、前端构建）属 M8。
