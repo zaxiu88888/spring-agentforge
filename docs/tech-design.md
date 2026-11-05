@@ -40,12 +40,12 @@ com.agentforge
 │   ├── AgentLoop.java          # Think-Execute 循环（对应原型 JChatMind）
 │   ├── AgentState.java         # IDLE/THINKING/EXECUTING/FINISHED/ERROR（真状态机，非摆设）
 │   ├── AgentRuntimeFactory.java# 装配：加载配置→回放记忆→解析工具/知识库→选模型 🩹配置全部局部变量
-│   └── tools/                  # Tool 接口 + ToolType(FIXED/OPTIONAL) + 4 实现
-│       ├── Tool.java / ToolType.java
+│   └── tools/                  # AgentTool 接口 + ToolType(FIXED/OPTIONAL) + 4 实现
+│       ├── AgentTool.java / ToolType.java   # 命名避开 Spring AI @Tool 注解类型撞名
 │       ├── TerminateTool.java      # FIXED 信号工具（空方法体，主循环识别响应名）
-│       ├── KnowledgeQueryTool.java # FIXED，调 RagService.similaritySearch
-│       ├── CurrentTimeTool.java    # OPTIONAL
-│       └── SqlQueryTool.java       # OPTIONAL，只读 SELECT，走 eshop 数据源
+│       ├── KnowledgeQueryTool.java # FIXED，调 RagService.similaritySearch（M6）
+│       ├── CurrentTimeTool.java    # OPTIONAL（M5）
+│       └── SqlQueryTool.java       # OPTIONAL，只读 SELECT，走 eshop 数据源（M5）
 ├── rag/
 │   ├── Splitter.java           # 接口：List<Chunk> split(String rawMarkdown) —— 拓展缝
 │   ├── MarkdownTitleSplitter.java  # 实现：flexmark 按标题章节切（含表格保留原文）

@@ -74,3 +74,14 @@
 - 测试：纯单测 3（mock ChatClient 验注册表语义）+ 装配 IT 2（双模型存在 + 遍历 ModelType 断言每个枚举值都有同名 Bean——三方对齐不变量守护）。**Tests run: 25, Failures: 0 BUILD SUCCESS**。
 - 首个模块讲解稿 docs/modules/m3-multi-model-registry.md（8 问，用户先答 AI 补全）。
 - 自审：契约一致（枚举值与 api-contract ModelType 逐字同）；Registry 不可变无并发问题；哑 key 风险已加告警；覆盖达 mvp-scope M3 要求。
+
+## 2026-11-05
+
+### M4 Agent 循环（核心中的核心）
+- 新增：AgentState 真状态机（IDLE/THINKING/EXECUTING/FINISHED/ERROR 实流转）、AgentLoop（六路径，一次性实例不可重入）、AgentMessageSink、AgentProgressListener（M4 日志实现/M7 换 SSE）、AgentRuntimeFactory（🩹修复原型共享状态并发缺陷：装配中间态全局部变量）、AgentTool/ToolType/TerminateTool、ChatEvent + ChatEventListener(@Async("agentExecutor"))、AsyncConfig(4/10/100)、Service 增 getRecentMessages + createChatMessage 仅 USER 角色发事件。
+- **踩坑 1（命名撞车）**：自定义 `Tool` 接口与 Spring AI 的 `@Tool` 注解类型（本身是接口）同名，import 相互遮蔽导致"注解未覆盖 resultConverter()"诡异报错——接口改名 **AgentTool** 彻底避撞，tech-design 已同步。
+- **踩坑 2（API 差异）**：Spring AI 1.1 无 `ToolCallback.getName()`，用 `getToolDefinition().name()`；`AssistantMessage.builder().toolCalls(null)` 会抛异常（要传空列表）；`DefaultToolCallingChatOptions.builder().build()` 声明类型要写接口 ToolCallingChatOptions。
+- **测试抓到真 bug**：execute 遍历全量 `conversationHistory()` 导致上一轮工具响应**重复落库**（maxSteps 测试的 5≠4 现形）——修复为按 `messagesBefore.size()` 界只持久化新增段。教训记入 M4 讲解稿第 7 题。
+- 测试策略：ChatClient 深桩 mock 控制模型输出序列，ToolCallback/ToolCallingManager 全真——六路径 + 记忆成对相邻断言 + Factory 装配/异常 + Listener 兜底 + Service recent 正序。**Tests run: 41, Failures: 0 BUILD SUCCESS**。
+- 设计决策（与原型的差异）：①循环异常吞掉不上抛（@Async 线程无人接，改为 onDone(错误) + ERROR 状态）；②最终直接回答不回写内存记忆（实例一次性，落库即可，下次运行 DB 回放）——均已写入测试注释。
+- 自审四查：契约一致（仅 USER 发事件对齐 api-contract §3）；Factory 无状态/线程池有界；无新增 SQL 面；覆盖 mvp-scope M4 全部六路径。缺口记录：POST→事件→异步执行的端到端链路待 M8 用真 key 联调验证。
