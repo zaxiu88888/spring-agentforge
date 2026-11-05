@@ -110,3 +110,7 @@
 - **踩坑**：空 key "" 不以 dummy 开头穿透守卫，单测意外发起真实 HTTP 得 401——守卫补 isBlank（测试守卫的价值：防真实外呼）；装配 IT 预期过时（knowledgeQuery 成为 FIXED）。
 - 测试：分块器 5（标题/前言/表格原文/无标题/空）+ 哑 key 2 + KnowledgeTool 3 + 上传 IT 3（@MockitoBean RagService：上传→记录+filePath+3 块+磁盘文件；删除全清；失败回滚）+ Factory 提示串 1。**Tests run: 69, Failures: 0 BUILD SUCCESS**。
 - 自审四查：契约一致（upload multipart/.md 限制/错误语义对齐 §5）；上传链路无并发共享态、失败回滚无残留；路径拼接全部经 normalize（无穿越面）、embedding key 不落日志；覆盖 mvp-scope M6（分块单测+真实向量入库召回）。遗留：真实 embedding API 的端到端（真 key 上传→检索）留 M8 验收联调。讲解稿 docs/modules/m6-rag.md（8 问待答）。
+
+### M5 讲解稿作答批注 + M4 三题二次复述
+- M5 八题 8/8 通过，术语运用显著进步（Schema 注入 / Fail Soft / Self-Correction / fail-closed）。
+- **M4 第 4/5/7 题二次复述仍未通过**：仍在推测而非对照代码（第 4 题甚至脑补"conversationHistory 是清洗后的干净历史"，恰与事实相反——它是含全部中间态的全量快照）。批注升级为**代码级数据流走查**（三段消息序列实例）回写讲解稿，要求先读 AgentLoop.java 的 think()/execute() 再做第三次复述。教学观察：概念题答得好（M3/M5 全过），涉及自家代码机制时易脑补——后续里程碑讲解稿答题前先指认源码位置。

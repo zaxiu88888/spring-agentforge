@@ -70,6 +70,70 @@
 
 ---
 
+## 第二次复述批注（2026-11-05 晚，4/5/7 三题）——未通过，附代码级走查
+
+三题复述仍基于推测而非代码（第 4 题甚至脑补出"conversationHistory 是清洗提炼后的干净历史"——恰恰相反，它包含全部中间态）。**答题前必须先打开 `AgentLoop.java` 的 `think()` 和 `execute()` 通读一遍**。以下走查对照代码看：
+
+### 第 4 题走查：clear + 重建 的真实原因
+
+```
+初始 memory: [System, User("深圳天气？")]
+
+think 第1轮 → 模型返回 AssistantMessage(toolCalls=[weather])
+  ★ 此刻这条 assistant 消息【还没有】进 memory！
+
+execute 第1轮:
+  prompt.messages = memory.get() = [System, User]          ← 不含新 assistant
+  executeToolCalls(prompt, resp) 内部执行工具后返回:
+  conversationHistory = [System, User, Assistant(toolCalls), Tool("晴25℃")]
+  ★ 这是"prompt 消息 + 新增两条"的全量快照——不是增量，更不是"清洗后的干净历史" ★
+
+  clear + add(conversationHistory) → memory = [System, User, Assistant, Tool]   ✔ 每条唯一
+  若不 clear 直接 add      → memory = [System, User, System, User, Assistant, Tool]
+                             ✘ 旧消息全部双份！下一轮 think 把重复序列发给模型 → API 拒绝
+
+"防膨胀/防污染"是 MessageWindowChatMemory(maxMessages) 窗口机制的职责，与本问题无关。
+```
+
+### 第 5 题走查：原型缺陷在 Factory 的实例字段，不在 Memory
+
+```
+原型 JChatMindFactory 是单例 @Component，却定义了实例字段暂存装配中间态：
+    private AgentDTO agentConfig;        // ← 祸根：单例里的可变共享状态
+    loadAgent() 写它、loadMemory() 读它。
+
+线程1（用户A）: agentConfig = A 的配置（工具=[sqlQuery], 模型=glm）
+线程2（用户B）: agentConfig = B 的配置（工具=[time],     模型=deepseek）  ← 覆盖！
+线程1 继续执行: resolveRuntimeTools(agentConfig.allowedTools)
+              → 读到的是 B 的清单 → A 的 AgentLoop 穿了 B 的装备
+
+Memory 从未共享（本来就按会话隔离、每次运行新建），你的"串线/加锁"方案是
+通用并发知识但答非所问。修复：AgentDTO config 全部局部变量化、方法间传参。
+```
+
+### 第 7 题走查：重复落库是"全量遍历"，不是"双重写入"
+
+```
+第2轮 execute 时：
+  prompt.messages = 第1轮重建后的 memory = [System, User, A1(tc), T1, A2(tc)]   （5条）
+  conversationHistory = 上述5条 + 新增 T2 = [System, User, A1(tc), T1, A2(tc), T2]
+                                              ★ 含第1轮的 T1——全量！★
+
+我最初的错误代码：for (Message m : conversationHistory) 落库所有 ToolResponse
+  → 第1轮已落 T1；第2轮又遍历到 T1，又落一次 → T1 在聊天记录里出现两次
+  （测试抓包：maxSteps=2 时期望 4 条消息，实际 5 条）
+
+修复：int before = prompt.messages.size();   // = 5
+      for (i = before; i < history.size(); i++)  → 只处理新增的 T2
+
+不存在"框架自动写入"——internalToolExecutionEnabled(false) 之后框架根本不碰记忆。
+"toolCallId 去重"是事后补救；边界法从源头只看新增，更干净。
+```
+
+**第三次复述要求**：先读 `src/main/java/com/agentforge/agent/AgentLoop.java`（重点 `think()`/`execute()` 两个方法，共约 60 行），再凭代码答 4/7 两题；第 5 题读 `AgentRuntimeFactory` 类注释。
+
+---
+
 ## 参考要点（答题后再看）
 
 - **1**：关掉的是 ChatClient 内部的"收到 tool_calls → 自动执行 → 自动把结果回传模型再调一次"闭环。不关的话 `.call()` 会在框架内部把多轮工具全跑完才返回，我们的循环看不到中间过程、推不了 SSE、也控制不了步数上限——等于放弃了 Agent 的控制权。关掉后我们拿到"带 tool_calls 的原始响应"，执行与否由自己决定。
