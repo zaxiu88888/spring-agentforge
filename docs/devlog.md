@@ -91,3 +91,6 @@
 
 ### M4 讲解稿作答批注
 - 用户完成全部 10 题作答。总评：概念方向感好（1/3/8/9 四题好），但对"自己代码的具体机制"掌握不牢——第 4 题答偏（记忆 clear+重建的真实原因是 conversationHistory 全量重建防消息序列非法，不是防膨胀）、第 5/7 题根因错（原型缺陷是 Factory 实例字段共享非 Memory 共享；重复落库是全量遍历非双重 add）。这三题恰是面试杀手锏，批注已逐一纠正回写 docs/modules/m4-agent-loop.md，建议用户针对性复述重练。
+
+### git push 连接重置排查
+- 现象：python/浏览器直连 github 正常，git push 报 "Recv failure: Connection was reset"。排查：无任何代理配置（系统/git/环境均无）→ 排除代理未传递；判定为 HTTP/2 多路复用通道被间歇重置。**解法：`git -c http.version=HTTP/1.1 push` 成功，已 `git config http.version HTTP/1.1` 固化到 repo-local**。
