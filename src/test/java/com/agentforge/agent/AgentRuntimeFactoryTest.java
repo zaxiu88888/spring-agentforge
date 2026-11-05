@@ -54,11 +54,17 @@ class AgentRuntimeFactoryTest {
     private final com.agentforge.mapper.KnowledgeBaseMapper knowledgeBaseMapper =
             mock(com.agentforge.mapper.KnowledgeBaseMapper.class);
     private final ChatClientRegistry registry = mock(ChatClientRegistry.class);
-    private final AgentProgressListener progress = mock(AgentProgressListener.class);
+    private final com.agentforge.sse.ProgressListenerFactory progressListenerFactory =
+            new com.agentforge.sse.ProgressListenerFactory(null) {
+                @Override
+                public AgentProgressListener create(String chatSessionId) {
+                    return mock(AgentProgressListener.class);
+                }
+            };
 
     private final AgentRuntimeFactory factory = new AgentRuntimeFactory(
             agentMapper, agentConverter, chatMessageConverter, messageService, knowledgeBaseMapper,
-            registry, List.of(new FakeFixedTool(), new FakeOptionalTool()), progress);
+            registry, List.of(new FakeFixedTool(), new FakeOptionalTool()), progressListenerFactory);
 
     private void stubAgent(String model, List<String> allowedTools) {
         Agent entity = Agent.builder().id("a1").name("t").model(model).build();

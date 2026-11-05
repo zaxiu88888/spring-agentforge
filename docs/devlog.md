@@ -119,3 +119,10 @@
 - M4 第 4/5/7 三次复述**全部通过**（对照代码后质量质变：全量快照/单例实例字段覆盖/边界法三点全中，且主动澄清旧错误认知）——**M4 模块结业**。"先读源码再答题"习惯确立。
 - M6 八题 8/8 通过（"菜单/点菜""缺胳膊少腿"等比喻到位），仅余精确化小补（上传先建记录拿 docId、embedding-3 原生 2560 显式降 1024、余弦是忽略模长非归一化、mock 边界原则）——**M6 模块结业**。
 - 讲解稿进度：M3/M4/M5/M6 全部结业，无欠账。待 M7/M8 产出后各配一份。
+
+### M7 SSE 推送
+- sse 包四件套：SseMessage（record + 四事件工厂：THINKING/EXECUTING 带状态文本、GENERATED_CONTENT 带完整消息、DONE 带错误摘要）、SseServiceImpl（ConcurrentHashMap 连接池，30min 超时，onCompletion/onTimeout/onError 三回调条件删除清理，同会话重连先 complete 旧连接）、SseAgentProgressListener（AgentProgressListener → 四事件映射，回调契约绝不抛异常）、ProgressListenerFactory + SseController（GET /sse/connect/{id}，text/event-stream，无 /api 前缀）。
+- 🩹 SseServiceImpl.send 无连接**返回 false 不抛异常**（原型抛 RuntimeException 会杀死 Agent 循环——传输层缺失不该有权限终止业务；消息已落库，前端重连后拉历史对账）。
+- **自审抓到自己的真缺陷（讲解稿第 4 题）**：第一版 SseAgentProgressListener 做成 @Component 单例、实例字段 currentSession 从 onMessage 反推会话——单例+会话态+并发=串线（与 M4 修的 Factory 缺陷同构）。修复：listener 按会话实例化（构造参数绑 sessionId），Factory 里 ProgressListenerFactory.create(sessionId) 装配时 new，生命周期随 AgentLoop。
+- 测试：SseService 语义 4（🩹未连接不抛/send 状态/重连替换/事件工厂）+ 监听器映射 2（四回调→四事件、sseService 抛异常不上传）+ 控制器 IT 2（event-stream+asyncStarted+init 入池、/api/sse 前缀真 404）+ Factory 单测适配。**Tests run: 77, Failures: 0 BUILD SUCCESS**。
+- 自审四查：契约一致（§8 事件/字段逐字对齐，IT 断言 asyncStarted）；并发安全（条件删除防误删、监听器会话隔离、事件源单线程串行）；无敏感信息入日志；覆盖 mvp-scope M7 要求。讲解稿 docs/modules/m7-sse.md（8 问待答，第 4 题即上面自审缺陷）。

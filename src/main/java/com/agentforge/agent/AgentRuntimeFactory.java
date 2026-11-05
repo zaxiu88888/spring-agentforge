@@ -54,7 +54,7 @@ public class AgentRuntimeFactory {
     private final com.agentforge.mapper.KnowledgeBaseMapper knowledgeBaseMapper;
     private final ChatClientRegistry chatClientRegistry;
     private final List<AgentTool> registeredTools;
-    private final AgentProgressListener progressListener;
+    private final com.agentforge.sse.ProgressListenerFactory progressListenerFactory;
 
     public AgentLoop create(String agentId, String sessionId) {
         // 1. 加载 Agent 配置（局部变量，线程安全）
@@ -80,7 +80,7 @@ public class AgentRuntimeFactory {
         // 4. 知识库提示（knowledgeQuery 工具的 kbId 参数来源）
         String knowledgeHint = buildKnowledgeHint(resolveKnowledgeBases(config.getAllowedKbs()));
 
-        // 5. 模型路由 + 消息下沉通道 + 组装
+        // 5. 模型路由 + 消息下沉通道 + 会话级进度监听 + 组装
         ChatClient chatClient = chatClientRegistry.require(config.getModel().getModelName());
         AgentMessageSink sink = dto -> {
             String id = chatMessageFacadeService.agentCreateChatMessage(dto);
@@ -88,12 +88,13 @@ public class AgentRuntimeFactory {
             vo.setId(id);
             return vo;
         };
+        AgentProgressListener listener = progressListenerFactory.create(sessionId);
 
         log.info("Agent 装配完成 agent={} model={} tools={} memoryWindow={}",
                 agentId, config.getModel().getModelName(),
                 toolCallbacks.stream().map(cb -> cb.getToolDefinition().name()).toList(), window);
         return new AgentLoop(chatClient, toolCallbacks, chatMemory, sessionId,
-                AgentLoop.DEFAULT_MAX_STEPS, sink, progressListener, knowledgeHint);
+                AgentLoop.DEFAULT_MAX_STEPS, sink, listener, knowledgeHint);
     }
 
     /** 知识库提示串：name(kbId=...) 分号分隔，注入 think 提示词（M6） */
