@@ -33,8 +33,9 @@ class AgentToolAssemblyIT {
         agentMapper.insert(agent);
         try {
             AgentLoop loop = factory.create(agent.getId(), java.util.UUID.randomUUID().toString());
+            // FIXED 全量（terminate + knowledgeQuery）+ 勾选的 OPTIONAL（sqlQuery、getCurrentTime）
             assertThat(loop.toolNames())
-                    .containsExactlyInAnyOrder("terminate", "sqlQuery", "getCurrentTime");
+                    .containsExactlyInAnyOrder("terminate", "knowledgeQuery", "sqlQuery", "getCurrentTime");
         } finally {
             agentMapper.deleteById(agent.getId());
         }

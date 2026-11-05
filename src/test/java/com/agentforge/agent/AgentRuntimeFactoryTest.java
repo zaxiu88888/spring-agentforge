@@ -51,11 +51,13 @@ class AgentRuntimeFactoryTest {
     private final AgentConverter agentConverter = mock(AgentConverter.class);
     private final ChatMessageConverter chatMessageConverter = mock(ChatMessageConverter.class);
     private final ChatMessageFacadeService messageService = mock(ChatMessageFacadeService.class);
+    private final com.agentforge.mapper.KnowledgeBaseMapper knowledgeBaseMapper =
+            mock(com.agentforge.mapper.KnowledgeBaseMapper.class);
     private final ChatClientRegistry registry = mock(ChatClientRegistry.class);
     private final AgentProgressListener progress = mock(AgentProgressListener.class);
 
     private final AgentRuntimeFactory factory = new AgentRuntimeFactory(
-            agentMapper, agentConverter, chatMessageConverter, messageService,
+            agentMapper, agentConverter, chatMessageConverter, messageService, knowledgeBaseMapper,
             registry, List.of(new FakeFixedTool(), new FakeOptionalTool()), progress);
 
     private void stubAgent(String model, List<String> allowedTools) {
@@ -118,6 +120,20 @@ class AgentRuntimeFactoryTest {
         assertThatThrownBy(() -> factory.create("a1", "s1"))
                 .isInstanceOf(BizException.class)
                 .hasMessageContaining("未配置模型");
+    }
+
+    @Test
+    @DisplayName("知识库提示串：name(kbId=...) 分号分隔；空列表返回空串")
+    void knowledgeHintFormat() {
+        assertThat(AgentRuntimeFactory.buildKnowledgeHint(null)).isEmpty();
+        assertThat(AgentRuntimeFactory.buildKnowledgeHint(List.of())).isEmpty();
+        assertThat(AgentRuntimeFactory.buildKnowledgeHint(List.of(
+                com.agentforge.model.entity.KnowledgeBase.builder()
+                        .id("11111111-1111-1111-1111-111111111111").name("产品手册").build(),
+                com.agentforge.model.entity.KnowledgeBase.builder()
+                        .id("22222222-2222-2222-2222-222222222222").name("帮助中心").build())))
+                .isEqualTo("产品手册(kbId=11111111-1111-1111-1111-111111111111); "
+                        + "帮助中心(kbId=22222222-2222-2222-2222-222222222222)");
     }
 
     @Test

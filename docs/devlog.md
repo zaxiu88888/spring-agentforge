@@ -102,3 +102,11 @@
 - **踩坑（编译主错引发雪崩）**：`@Tool(description = getDescription())` 注解值不允许方法调用，必须编译期常量；该编译错中断注解处理轮次，Lombok 全体失效，AgentLoop/Factory 冒出几十个"找不到符号"——先修第一个编译错再看后面的，多数是连带。
 - 测试：护栏纯单测 6（白名单/多语句/包裹/JSON 错误）+ CurrentTime 3 + 真库 IT 4（含"哪类卖最好"聚合查询——验收场景原型）+ Controller 切片 1 + 真实 Bean 装配 IT 1。**Tests run: 55, Failures: 0 BUILD SUCCESS**。
 - 自审四查：/api/tools 契约一致（data 直接数组）；JdbcTemplate 唯一 Bean 构造注入无歧义；护栏四层+错误信息不含库表结构泄露（仅回显截断 SQL）；覆盖 mvp-scope M5 测试要求（SQL 拦截/装配）。讲解稿 docs/modules/m5-tools.md（8 问待答）。
+
+### M6 RAG 链路
+- rag 包三件套：Splitter 接口（拓展缝）+ MarkdownTitleSplitter（flexmark 顶层标题偏移量切原文，表格保留原始 Markdown，前言为无标题块）+ ZhipuEmbeddingClient（embedding-3/dimensions=1024，3 次指数退避，哑/空 key 使用点 fail-fast）。
+- RagService（embed + similaritySearch→pgvector L2 top3）；DocumentStorageService（{base}/{kbId}/{docId}/{uuid}.md，删空父目录）；DocumentFacadeServiceImpl 上传真实现：校验→建记录→落盘→分块→逐块向量化入库→回写 filePath，**向量化失败整体回滚（半入库的知识库比失败更糟）**；删除连带清文件。
+- KnowledgeQueryTool（FIXED）返回 title+content JSON；AgentLoop 增 knowledgeHint（Factory 解析 allowed_kbs → "name(kbId=...)" 注入 think 提示词，与工具 kbId 参数构成导航+执行闭环）。
+- **踩坑**：空 key "" 不以 dummy 开头穿透守卫，单测意外发起真实 HTTP 得 401——守卫补 isBlank（测试守卫的价值：防真实外呼）；装配 IT 预期过时（knowledgeQuery 成为 FIXED）。
+- 测试：分块器 5（标题/前言/表格原文/无标题/空）+ 哑 key 2 + KnowledgeTool 3 + 上传 IT 3（@MockitoBean RagService：上传→记录+filePath+3 块+磁盘文件；删除全清；失败回滚）+ Factory 提示串 1。**Tests run: 69, Failures: 0 BUILD SUCCESS**。
+- 自审四查：契约一致（upload multipart/.md 限制/错误语义对齐 §5）；上传链路无并发共享态、失败回滚无残留；路径拼接全部经 normalize（无穿越面）、embedding key 不落日志；覆盖 mvp-scope M6（分块单测+真实向量入库召回）。遗留：真实 embedding API 的端到端（真 key 上传→检索）留 M8 验收联调。讲解稿 docs/modules/m6-rag.md（8 问待答）。

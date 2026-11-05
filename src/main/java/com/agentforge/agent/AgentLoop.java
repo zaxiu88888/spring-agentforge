@@ -45,6 +45,7 @@ public class AgentLoop {
     private final int maxSteps;
     private final AgentMessageSink sink;
     private final AgentProgressListener progress;
+    private final String knowledgeHint;   // 可用知识库描述（M6 起由 Factory 注入，配合 knowledgeQuery 工具）
 
     private final ToolCallingManager toolCallingManager = ToolCallingManager.builder().build();
     private final org.springframework.ai.model.tool.ToolCallingChatOptions chatOptions =
@@ -62,6 +63,17 @@ public class AgentLoop {
                      int maxSteps,
                      AgentMessageSink sink,
                      AgentProgressListener progress) {
+        this(chatClient, toolCallbacks, chatMemory, sessionId, maxSteps, sink, progress, null);
+    }
+
+    public AgentLoop(ChatClient chatClient,
+                     List<ToolCallback> toolCallbacks,
+                     ChatMemory chatMemory,
+                     String sessionId,
+                     int maxSteps,
+                     AgentMessageSink sink,
+                     AgentProgressListener progress,
+                     String knowledgeHint) {
         this.chatClient = chatClient;
         this.toolCallbacks = List.copyOf(toolCallbacks);
         this.chatMemory = chatMemory;
@@ -69,6 +81,7 @@ public class AgentLoop {
         this.maxSteps = maxSteps;
         this.sink = sink;
         this.progress = progress;
+        this.knowledgeHint = knowledgeHint;
     }
 
     public AgentState getState() {
@@ -119,7 +132,7 @@ public class AgentLoop {
                 .build();
 
         lastChatResponse = chatClient.prompt(prompt)
-                .system(THINK_PROMPT)
+                .system(thinkPrompt())
                 .toolCallbacks(toolCallbacks.toArray(new ToolCallback[0]))
                 .call()
                 .chatClientResponse()
@@ -198,6 +211,15 @@ public class AgentLoop {
         if (terminated) {
             state = AgentState.FINISHED;
         }
+    }
+
+    /** 决策提示词：基础指令 + 可用知识库清单（知识库 ID 供 knowledgeQuery 工具参数使用） */
+    private String thinkPrompt() {
+        if (knowledgeHint == null || knowledgeHint.isBlank()) {
+            return THINK_PROMPT;
+        }
+        return THINK_PROMPT + "\n【可用知识库】" + knowledgeHint
+                + "\n需要其中的私有知识时，调用 knowledgeQuery 工具（kbId 从上面列表选）。\n";
     }
 
     private String toolNames(AssistantMessage output) {

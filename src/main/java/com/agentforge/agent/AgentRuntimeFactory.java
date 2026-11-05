@@ -51,6 +51,7 @@ public class AgentRuntimeFactory {
     private final AgentConverter agentConverter;
     private final ChatMessageConverter chatMessageConverter;
     private final ChatMessageFacadeService chatMessageFacadeService;
+    private final com.agentforge.mapper.KnowledgeBaseMapper knowledgeBaseMapper;
     private final ChatClientRegistry chatClientRegistry;
     private final List<AgentTool> registeredTools;
     private final AgentProgressListener progressListener;
@@ -76,7 +77,10 @@ public class AgentRuntimeFactory {
         // 3. 工具装配：FIXED 全量 + allowedTools 命中的 OPTIONAL
         List<ToolCallback> toolCallbacks = buildToolCallbacks(resolveTools(config.getAllowedTools()));
 
-        // 4. 模型路由 + 消息下沉通道 + 组装
+        // 4. 知识库提示（knowledgeQuery 工具的 kbId 参数来源）
+        String knowledgeHint = buildKnowledgeHint(resolveKnowledgeBases(config.getAllowedKbs()));
+
+        // 5. 模型路由 + 消息下沉通道 + 组装
         ChatClient chatClient = chatClientRegistry.require(config.getModel().getModelName());
         AgentMessageSink sink = dto -> {
             String id = chatMessageFacadeService.agentCreateChatMessage(dto);
@@ -89,7 +93,24 @@ public class AgentRuntimeFactory {
                 agentId, config.getModel().getModelName(),
                 toolCallbacks.stream().map(cb -> cb.getToolDefinition().name()).toList(), window);
         return new AgentLoop(chatClient, toolCallbacks, chatMemory, sessionId,
-                AgentLoop.DEFAULT_MAX_STEPS, sink, progressListener);
+                AgentLoop.DEFAULT_MAX_STEPS, sink, progressListener, knowledgeHint);
+    }
+
+    /** 知识库提示串：name(kbId=...) 分号分隔，注入 think 提示词（M6） */
+    static String buildKnowledgeHint(List<com.agentforge.model.entity.KnowledgeBase> kbs) {
+        if (kbs == null || kbs.isEmpty()) {
+            return "";
+        }
+        return kbs.stream()
+                .map(kb -> kb.getName() + "(kbId=" + kb.getId() + ")")
+                .collect(Collectors.joining("; "));
+    }
+
+    private List<com.agentforge.model.entity.KnowledgeBase> resolveKnowledgeBases(List<String> allowedKbs) {
+        if (allowedKbs == null || allowedKbs.isEmpty()) {
+            return List.of();
+        }
+        return knowledgeBaseMapper.selectByIdBatch(allowedKbs);
     }
 
     private int resolveWindow(AgentDTO config) {

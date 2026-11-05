@@ -32,5 +32,13 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+agentforge:
+  embedding:
+    base-url: ${ZHIPU_BASE_URL:https://open.bigmodel.cn}
+
+document:
+  storage:
+    base-path: ./data/documents
+
 server:
   port: 8080
