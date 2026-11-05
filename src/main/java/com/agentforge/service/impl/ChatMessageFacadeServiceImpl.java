@@ -1,6 +1,7 @@
 package com.agentforge.service.impl;
 
 import com.agentforge.converter.ChatMessageConverter;
+import com.agentforge.event.ChatEvent;
 import com.agentforge.exception.BizException;
 import com.agentforge.mapper.ChatMessageMapper;
 import com.agentforge.mapper.ChatSessionMapper;
@@ -10,9 +11,11 @@ import com.agentforge.model.request.CreateChatMessageRequest;
 import com.agentforge.model.vo.ChatMessageVO;
 import com.agentforge.service.ChatMessageFacadeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,11 +25,18 @@ public class ChatMessageFacadeServiceImpl implements ChatMessageFacadeService {
     private final ChatMessageMapper chatMessageMapper;
     private final ChatSessionMapper chatSessionMapper;
     private final ChatMessageConverter chatMessageConverter;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public String createChatMessage(CreateChatMessageRequest request) {
         validate(request);
-        return doCreate(chatMessageConverter.toDTO(request));
+        String id = doCreate(chatMessageConverter.toDTO(request));
+        // 只有用户消息才触发 Agent（assistant/tool 由 Agent 自己产生，不发事件防递归）
+        if (request.getRole() == ChatMessageDTO.RoleType.USER) {
+            eventPublisher.publishEvent(new ChatEvent(
+                    request.getAgentId(), request.getSessionId(), request.getContent()));
+        }
+        return id;
     }
 
     @Override
@@ -43,6 +53,15 @@ public class ChatMessageFacadeServiceImpl implements ChatMessageFacadeService {
                 .map(chatMessageConverter::toDTO)
                 .map(chatMessageConverter::toVO)
                 .toList();
+    }
+
+    @Override
+    public List<ChatMessageDTO> getRecentMessages(String sessionId, int limit) {
+        List<ChatMessage> recent = chatMessageMapper.selectRecent(sessionId, limit);
+        // selectRecent 为 DESC（最近在前），反转为时间正序
+        List<ChatMessage> asc = new ArrayList<>(recent);
+        java.util.Collections.reverse(asc);
+        return asc.stream().map(chatMessageConverter::toDTO).toList();
     }
 
     private void validate(CreateChatMessageRequest request) {

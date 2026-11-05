@@ -29,6 +29,7 @@ class ChatPersistenceIT {
     @Autowired private AgentMapper agentMapper;
     @Autowired private ChatSessionMapper chatSessionMapper;
     @Autowired private ChatMessageMapper chatMessageMapper;
+    @Autowired private com.agentforge.service.ChatMessageFacadeService chatMessageFacadeService;
 
     @Test
     void sessionCascadeDeletesMessages() {
@@ -92,6 +93,24 @@ class ChatPersistenceIT {
             assertThat(storedAssistantMeta.path("toolCalls").get(0).path("arguments").asText()).contains("SELECT 1");
             assertThat(storedToolMeta.path("toolResponse").path("responseData").asText()).isEqualTo("count=10");
             assertThat(assistantId).isNotNull();
+        } finally {
+            chatSessionMapper.deleteById(sessionId);
+        }
+    }
+
+    @Test
+    void serviceRecentMessagesReturnsAscending() {
+        String sessionId = insertSession("recent-svc-it");
+        try {
+            for (int i = 1; i <= 4; i++) {
+                insertMessage(sessionId, "user", "svc-" + i, null);
+                sleepMillis(15);
+            }
+            List<com.agentforge.model.dto.ChatMessageDTO> recent =
+                    chatMessageFacadeService.getRecentMessages(sessionId, 3);
+            assertThat(recent).hasSize(3);
+            assertThat(recent.get(0).getContent()).isEqualTo("svc-2");   // 最近的 3 条，时间正序
+            assertThat(recent.get(2).getContent()).isEqualTo("svc-4");
         } finally {
             chatSessionMapper.deleteById(sessionId);
         }

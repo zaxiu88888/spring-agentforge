@@ -15,4 +15,7 @@ public interface ChatMessageFacadeService {
     String agentCreateChatMessage(ChatMessageDTO dto);
 
     List<ChatMessageVO> getChatMessagesBySessionId(String sessionId);
+
+    /** 最近 N 条（时间正序），AgentRuntimeFactory 回放记忆用 */
+    List<ChatMessageDTO> getRecentMessages(String sessionId, int limit);
 }
