@@ -85,3 +85,6 @@
 - 测试策略：ChatClient 深桩 mock 控制模型输出序列，ToolCallback/ToolCallingManager 全真——六路径 + 记忆成对相邻断言 + Factory 装配/异常 + Listener 兜底 + Service recent 正序。**Tests run: 41, Failures: 0 BUILD SUCCESS**。
 - 设计决策（与原型的差异）：①循环异常吞掉不上抛（@Async 线程无人接，改为 onDone(错误) + ERROR 状态）；②最终直接回答不回写内存记忆（实例一次性，落库即可，下次运行 DB 回放）——均已写入测试注释。
 - 自审四查：契约一致（仅 USER 发事件对齐 api-contract §3）；Factory 无状态/线程池有界；无新增 SQL 面；覆盖 mvp-scope M4 全部六路径。缺口记录：POST→事件→异步执行的端到端链路待 M8 用真 key 联调验证。
+
+### M3 讲解稿作答批注
+- 用户完成全部 8 题作答（8/8 命中，第 7/8 题用上"假启动/配置漂移"术语，评优秀）。批注与补强已回写 docs/modules/m3-multi-model-registry.md：第 3 题补"单一事实来源+测试守护"，第 5 题澄清"HTTP 200+业务 code"语义，第 7 题对照实际软校验实现并给出 prod fail-fast 升级话术。
