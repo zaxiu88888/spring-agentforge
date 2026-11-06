@@ -141,3 +141,14 @@
 - **双模型对照结论**：glm-4.6 单轮双工具并行的决策风格 vs deepseek 单工具链路，AgentLoop 对两种模型行为均正确支撑——注册表抽象的价值实证。
 - 清理：psql 命令行传中文再次乱码（改 SQL 文件解决，坑已记录）、E2E 数据三表清零、data/documents 清空、后端进程终止。
 - 至此 mvp-scope §6 验收标准第 2/3 条（SQL 工具链路、知识库链路）均已在真实环境跑通；剩第 1/4/5 条（界面操作、刷新恢复、前端构建）属 M8。
+
+## 2026-11-06
+
+### M8 前端三视图 + SSE 聊天（最后一个里程碑，MVP 完成）
+- 前端八文件：types.ts（契约 §0 逐字对齐）/ api/{http,api}.ts（统一 ApiResponse 解包、SSE_BASE_URL 无 /api 前缀、multipart upload）/ Sidebar（三 Tab：会话+智能体+知识库，删除均有 Popconfirm）/ AgentModal（单页表单：模型/三滑杆/工具勾选/知识库挂载）/ KbView（.md 上传+文档表格）/ ChatView（SSE 四事件消费、AI_DONE 与断线双时机拉历史对账、乐观插入、近底跟随滚动）/ MessageItem（用户气泡、assistant Markdown+工具调用徽标、tool 绿色可折叠卡片、状态气泡）/ App（view 状态机 welcome|chat|kb）。
+- 构建：tsc + vite build ✅（chunk 1.3MB 为 antd+x-markdown 体积，信息级）；oxlint 零警告（修一处 set-state-in-effect：AgentModal 改 key 重挂载 + useState 初始化器）。
+- **GUI 验收（web-gui-tester 方法论：P0 计划/DOM+截图双证据/测修分离）**：T1 欢迎页 ✅；T2 界面创建智能体（勾 sqlQuery+挂知识库）✅；T3 知识库列表 ✅（顺带暴露预置脚本重复建库——第一次跑挂了但 KB 已建，UI 如实渲染两条，数据问题非 UI bug）；T4 聊天全链路 ✅——"黄金会员权益+哪类卖最多件"双问题，SSE 思考气泡→knowledgeQuery+sqlQuery 工具卡片→Markdown 表格回答，两源数据均正确引用；T5 刷新恢复 ✅（历史+工具卡片完整回归）。**验收标准 1/4/5 至此达成，§6 五条全部满足 → MVP 完成**。
+- **GUI 测试抓到 1 个真 UI bug**：发送后输入框不清空（AntD X Sender 非受控残留）→ 修复转受控组件（value+onChange+发送置空），回归验证通过（消息发出且 inputValue=""）。
+- **测试工程坑**：IAB 下 Playwright 语义定位（role/text 的 click/check）在 antd 组件上系统性超时（元素可见无遮挡、elementFromPoint 命中正确），最终全部改走 dom_cua 节点点击 + 只读求坐标 + cua.click 完成验收；另有一次坐标点击误中 Modal 遮罩导致弹窗关闭（教训：坐标动作前必须校验落点在目标容器内）。已记入 M8 讲解稿第 8 题。
+- 清理：验收数据三表清零 + 无标题会话补删 + data/documents 清空 + 双服务进程终止；截图证据存 gui-test-screenshots/（t1/t2/t3/t4/t5）。
+- 后端 77 测试全绿维持；前端完成线（tsc+build+oxlint 零错误）达成。讲解稿 docs/modules/m8-frontend.md（8 问待答）。
