@@ -160,3 +160,11 @@
 - **模块化**：M1 基础 9 / M2 数据CRUD 12 / M3 多模型 5 / M4 Agent循环 16 / M5 工具 14 / M6 RAG 13 / M7 SSE 8——逐模块全绿；M8 前端 build+lint 零错。**总体**：mvn test 全量 **77/77 BUILD SUCCESS**。
 - **事故与教训**：回归前 TaskStop 杀掉挂起的后台命令，把其中正在等待的 pg_ctl start 连同刚拉起的 postmaster 树杀（Windows 任务树连坐）→ M2 首跑 10 error 全是连接拒绝。**铁律：永远不要杀包含 pg_ctl start 的任务**；PG 启动要么前台 -w 等完，要么确认 postmaster 已脱离启动 shell。
 - Social preview：GitHub 无 API、IAB 无文件上传能力——如实告知用户手动上传（30 秒三步），不做假成功。
+
+### 讲解稿 M7/M8 批注结业 + 简历条目定稿
+- M7 8/8（自审单例串线缺陷题过关；升华句"落库是 source of truth，SSE 只是加速器"）；M8 7/8（第 8 题把 Playwright 超时归因到 DOM 结构——实为语义动作面与 IAB 渲染层兼容性问题，建议本身正确）。**M3-M8 六模块讲解稿全部结业零欠账**。
+- 简历条目三轮收敛：初版（对齐原模板+真实细节）→ v2 精简（砍 40%）→ **v3 极简（砍 60%，背景一行+四要点）+ v3b 三行极限版**，全部存 docs/resume-entry.md；与原「智汇 Agent」条目的关键修正：本地 bge-m3→Embedding API、ChatGPT→双模型、时间 2026.11 真实区间、新增测试工程条（最大差异点）。
+- 用户手动完成 GitHub social preview 上传（t4 双工具对话截图）。
+
+### 项目 MVP 收官
+- 30 个提交全部推送；仓库完整门面（README+截图+文档导航+social preview）。项目进入维护/迭代态：候选拓展见 docs/prior-art.md §4（混合检索/分块策略/可观测性/流式中断/工具审批）。
