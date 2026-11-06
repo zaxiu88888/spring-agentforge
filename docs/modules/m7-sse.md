@@ -39,3 +39,15 @@
 - **6**：SseEmitter 本身**不是线程安全**的（官方文档明示），但它内部用 synchronized 保护发送（Spring 5 起对 send 加锁）；跨线程可行靠的是：emmitter 持有的是 ServletResponse 的输出引用，只要响应未完成，任意线程写入都由容器序列化到连接。真正要防的是**并发 send 交错**——我们的事件全部来自单个 AgentLoop 线程（@Async），天然串行，无需额外加锁；多 Agent 同会话的场景本项目不存在（每会话一条消息只触发一次事件）。
 - **7**：GENERATED_CONTENT 的载荷是**事实**（新消息，前端要追加进消息列表渲染成气泡/工具卡片）；THINKING/EXECUTING 是**过程状态**（瞬态提示语，前端只更新一个状态气泡，消息列表不变）——一个进数据模型、一个进 UI 状态。DONE 是事实（终态信号，收起状态气泡 + 错误摘要 toast）。这种"数据事件与状态事件分离"让前端 reducer 干净：前者 append、后者 setState。
 - **8**：返回 SseEmitter 后 MVC 把请求转入**异步模式**（Servlet 3 async）——Tomcat 线程立即释放去服务别的请求，响应由 emitter 的 send 驱动持续输出。`asyncStarted()` 断言验证的正是这个转换：如果实现错误地同步返回（比如在 controller 里就 complete 了），异步未开启，SSE 语义崩坏。
+
+---
+
+## 你的回答与批注（2026-11-06，8/8 通过结业）
+1. 单向广播/轻量自带重连/换 WS 信号（高频双向、打断插话）✅ 补：工具人工审批（HITL）也是信号。
+2. complete 旧连接；防泄漏+防双管乱推 ✅ 补：complete() 触发旧 onCompletion → remove(key,value) 条件删除不会误删新连接。
+3. 保护后台任务；会丢；重连+拉全量补偿 ✅ 完整。升华句：**落库是 source of truth，SSE 只是加速器**。
+4. 绑定会话专属 emitter / 单例字段被覆盖 / 每请求 new ✅✅（自审缺陷题过关）。
+5. 三回调时机 + 内存泄漏 ✅。
+6. Servlet 异步输出流 / synchronized / 乱序风险单线程顺序调用 ✅（我们的事件源天然是单 AgentLoop 线程）。
+7. 事实 vs 瞬态、append vs 覆盖 ✅（我们是消息流末尾气泡而非顶部状态栏，小差异无妨）。
+8. 异步模式释放 Tomcat 线程 / 验证异步挂起 ✅。

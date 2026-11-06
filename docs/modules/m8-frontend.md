@@ -39,3 +39,15 @@
 - **6**：工具结果常常是大 JSON（向量检索 3 段/SQL 200 行），默认全展开会把消息流撑爆、真正的回答被挤出视口——**信息密度优先级：结论 > 工具痕迹**。prettyJson try-catch：ToolResponse.responseData 是 JSON 字符串（M4 讲解稿第 9 题），但 terminate 这类工具的 responseData 可能不是合法 JSON（如 "[]" 或空），parse 失败回退原文展示，不崩组件。
 - **7**：AntD X 的 Sender **非受控时**只在 onSubmit 回调拿值、自己不清空？不——真实根因：我们把发送按钮的点击走了 cua 坐标路径，Sender 内部对"点击发送"的清空依赖其默认行为，但 onSubmit 后我们没有把 value 置空，而 Sender 是非受控的（没传 value），所以文字残留。修复 = 转受控：value={inputValue} + onChange={setInputValue} + 发送时 setInputValue("")——受控组件的状态归我们管理，清空时机明确。教训：**带输入的组件一开始就受控**，别依赖库的隐式行为。
 - **8**：现象：role/text 定位的 click/check 在 antd 组件上系统性超时（元素可见、无遮挡、elementFromPoint 命中正确），dom_cua 节点路径和坐标点击则全部成功。可能原因：Playwright 语义动作面（actionability 检查/事件合成）与 IAB 内嵌渲染层存在兼容问题。工程启示：①自动化依赖工具与被测栈的兼容性，验收受阻时按规范换路径（节点/坐标）而不是硬耗；②给团队的建议：核心链路回归优先考虑 **Playwright 官方 + 独立 Chromium**（标准协议栈）或组件级 Storybook/Vitest 测试，IAB 路径适合人工辅助式探索；③GUI 测试方法论本身（P0 计划、双证据、测修分离）比工具选择更重要——本轮就是按这套流程抓到输入框 bug 的。
+
+---
+
+## 你的回答与批注（2026-11-06，7/8 通过结业）
+1. useEffect [sessionId] + cleanup ✅ 补：App 还加了 key={sessionId} 强制重挂载，双保险。
+2. 重连 + AI_DONE 双时机；最终一致性 ✅。
+3. local id 导致后续操作失效 ✅ 补：React 列表 key 层面的冲突/闪烁。
+4. 瞬态/重排闪烁/移除复杂 ✅。
+5. DOM 复用残留、key 强制重建 ✅。
+6. 折叠动机 + parse 防崩 ✅（是组件崩溃非全页白屏，意思对）。
+7. 非受控根因 + 受控修复 ✅✅。
+8. ⚠️ 归因偏：DOM 定位其实全部成功（无遮挡），超时是 Playwright 语义动作面与 IAB 渲染层兼容性问题；三条建议（data-testid/组件级测试/逻辑剥离）本身正确。
