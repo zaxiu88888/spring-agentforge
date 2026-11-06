@@ -152,3 +152,6 @@
 - **测试工程坑**：IAB 下 Playwright 语义定位（role/text 的 click/check）在 antd 组件上系统性超时（元素可见无遮挡、elementFromPoint 命中正确），最终全部改走 dom_cua 节点点击 + 只读求坐标 + cua.click 完成验收；另有一次坐标点击误中 Modal 遮罩导致弹窗关闭（教训：坐标动作前必须校验落点在目标容器内）。已记入 M8 讲解稿第 8 题。
 - 清理：验收数据三表清零 + 无标题会话补删 + data/documents 清空 + 双服务进程终止；截图证据存 gui-test-screenshots/（t1/t2/t3/t4/t5）。
 - 后端 77 测试全绿维持；前端完成线（tsc+build+oxlint 零错误）达成。讲解稿 docs/modules/m8-frontend.md（8 问待答）。
+
+### README 门面更新（MVP 收官件）
+- 重写为完整版：核心特性（对齐真实实现）、界面截图（GUI 验收的 t4 聊天流/t2 表单复用进 docs/）、架构图、快速开始（init-all.bat + 密钥环境变量）、项目结构、"开发过程文档"导航（devlog/设计文档/讲解稿——面向招聘方深挖）。22 端点口径与 api-contract 对齐。
