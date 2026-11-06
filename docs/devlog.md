@@ -155,3 +155,8 @@
 
 ### README 门面更新（MVP 收官件）
 - 重写为完整版：核心特性（对齐真实实现）、界面截图（GUI 验收的 t4 聊天流/t2 表单复用进 docs/）、架构图、快速开始（init-all.bat + 密钥环境变量）、项目结构、"开发过程文档"导航（devlog/设计文档/讲解稿——面向招聘方深挖）。22 端点口径与 api-contract 对齐。
+
+### MVP 后全量回归（模块化 + 总体）
+- **模块化**：M1 基础 9 / M2 数据CRUD 12 / M3 多模型 5 / M4 Agent循环 16 / M5 工具 14 / M6 RAG 13 / M7 SSE 8——逐模块全绿；M8 前端 build+lint 零错。**总体**：mvn test 全量 **77/77 BUILD SUCCESS**。
+- **事故与教训**：回归前 TaskStop 杀掉挂起的后台命令，把其中正在等待的 pg_ctl start 连同刚拉起的 postmaster 树杀（Windows 任务树连坐）→ M2 首跑 10 error 全是连接拒绝。**铁律：永远不要杀包含 pg_ctl start 的任务**；PG 启动要么前台 -w 等完，要么确认 postmaster 已脱离启动 shell。
+- Social preview：GitHub 无 API、IAB 无文件上传能力——如实告知用户手动上传（30 秒三步），不做假成功。
